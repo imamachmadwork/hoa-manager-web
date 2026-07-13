@@ -5,6 +5,8 @@ description = "Playwright end-to-end test suite for hoa-manager-web"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "allure-pytest>=2.16.0",
+    "httpx>=0.28.1",
     "pytest-playwright>=0.8.0",
     "python-dotenv>=1.2.2",
 ]
@@ -12,7 +14,9 @@ dependencies = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 base_url = "https://roamstay.com"
-addopts = "--browser=chromium --screenshot=only-on-failure --video=retain-on-failure --tracing=retain-on-failure"
+addopts = "--browser=chromium --screenshot=only-on-failure --video=retain-on-failure --tracing=retain-on-failure --alluredir=allure-results --clean-alluredir"
 markers = [
     "smoke: quick critical-path checks",
+    "frontend: UI/E2E tests under tests/e2e (auto-applied)",
+    "backend: API tests under tests/api (auto-applied)",
 ]

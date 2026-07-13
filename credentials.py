@@ -6,6 +6,10 @@ import os
 CREDENTIALS = {
     "liberty": {
         "organization_id": "liberty",
+        # Full slug/groupCode as returned by GET /search-organizations and
+        # required by the backend's landing-authenticate "organization" field
+        # (distinct from organization_id, which is just the UI search term).
+        "organization_slug": "liberty-community-management-inc",
         "email": os.environ.get("LIBERTY_EMAIL"),
         "password": os.environ.get("LIBERTY_PASSWORD"),
     },

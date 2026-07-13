@@ -30,9 +30,22 @@ jobs:
       - name: Run tests
         env:
           PYTEST_BASE_URL: ${{ vars.PYTEST_BASE_URL }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
           LIBERTY_EMAIL: ${{ secrets.LIBERTY_EMAIL }}
           LIBERTY_PASSWORD: ${{ secrets.LIBERTY_PASSWORD }}
         run: uv run pytest
+
+      - name: Generate per-team bug reports
+        if: always()
+        run: uv run python scripts/generate_bug_report.py
+
+      - name: Install Allure commandline
+        if: always()
+        run: npm install -g allure-commandline
+
+      - name: Generate Allure HTML report
+        if: always()
+        run: allure generate allure-results --clean --output allure-report
 
       - name: Upload test artifacts
         if: failure()
@@ -40,4 +53,20 @@ jobs:
         with:
           name: playwright-artifacts
           path: test-results/
+          retention-days: 7
+
+      - name: Upload bug reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bug-reports
+          path: reports/bug-reports/
+          retention-days: 7
+
+      - name: Upload Allure HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report/
           retention-days: 7
