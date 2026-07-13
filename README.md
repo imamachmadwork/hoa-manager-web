@@ -82,6 +82,18 @@ uv run pytest
 allure serve allure-results   # generates + opens the HTML report in one step
 ```
 
+Or generate the static HTML report and serve it yourself:
+
+```bash
+uv run pytest || true
+allure generate allure-results --clean -o allure-report
+python3 -m http.server 4567 --directory allure-report
+```
+
+Then open `http://localhost:4567`. Don't open `allure-report/index.html`
+directly via `file://` — the report fetches its data over HTTP and won't
+render.
+
 `allure-results/` (raw data) and `allure-report/` (generated HTML) are both
 gitignored — they're build output, regenerated every run, never committed.
 
