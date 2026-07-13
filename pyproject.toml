@@ -1,0 +1,18 @@
+[project]
+name = "hoa-manager-web-tests"
+version = "0.1.0"
+description = "Playwright end-to-end test suite for hoa-manager-web"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pytest-playwright>=0.8.0",
+    "python-dotenv>=1.2.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+base_url = "https://roamstay.com"
+addopts = "--browser=chromium --screenshot=only-on-failure --video=retain-on-failure --tracing=retain-on-failure"
+markers = [
+    "smoke: quick critical-path checks",
+]
