@@ -30,6 +30,8 @@ jobs:
       - name: Run tests
         env:
           PYTEST_BASE_URL: ${{ vars.PYTEST_BASE_URL }}
+          LIBERTY_EMAIL: ${{ secrets.LIBERTY_EMAIL }}
+          LIBERTY_PASSWORD: ${{ secrets.LIBERTY_PASSWORD }}
         run: uv run pytest
 
       - name: Upload test artifacts
