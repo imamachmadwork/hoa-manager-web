@@ -15,5 +15,10 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# Allure / bug report output
+allure-results/
+allure-report/
+reports/
+
 # OS
 .DS_Store
