@@ -88,11 +88,14 @@ def test_created_application_detail_page_shows_correct_values(
 # These assert the *correct* expected behavior rather than the site's current
 # (buggy) behavior, so they fail today and will start passing on their own
 # once the underlying product bug is fixed - no code changes needed here at
-# that point. They're intentionally left unmarked (not skipped/xfailed) so
-# they show up as real failures in the Allure report and get picked up by
-# scripts/generate_bug_report.py, the same way any other regression would.
+# that point. They're not skipped/xfailed, so they show up as real failures
+# in the Allure report and get picked up by scripts/generate_bug_report.py,
+# the same way any other regression would. They're marked `known_bug` so CI
+# can run them in a separate, non-blocking job (see .github/workflows) -
+# tracked and visible without failing the PR check on every run.
 
 
+@pytest.mark.known_bug
 @allure.tag("known-bug")
 def test_all_filters_button_opens_panel(signed_in_rental_applications_page):
     """Known bug: "All Filters" does nothing on Rental Applications.
@@ -110,6 +113,7 @@ def test_all_filters_button_opens_panel(signed_in_rental_applications_page):
     expect(rental_page.filters_panel_heading).to_be_visible()
 
 
+@pytest.mark.known_bug
 @allure.tag("known-bug")
 def test_list_and_detail_agree_on_unit_for_same_application(
     signed_in_rental_applications_page, seeded_rental_application
