@@ -10,39 +10,13 @@ def api_client():
 
 
 @pytest.fixture
-def authenticated_session(api_client, credentials):
-    """Log in as the given organization and leave api_client carrying a
-    Bearer session token, for tests that need an authenticated session
-    rather than testing the login endpoint itself.
-
-    Mirrors the browser's two-step flow (see tests/api/test_auth_api.py):
-    landing-authenticate returns a one-time accessToken, which
-    landing-verify exchanges for the actual session token used as
-    `Authorization: Bearer <token>` on every subsequent org-scoped call.
+def authenticated_session(api_client, liberty_session_token):
+    """Applies the session-wide Liberty login to this test's api_client, for
+    tests that need an authenticated session rather than testing the login
+    endpoint itself.
     """
-    creds = credentials("liberty")
-    org_api_base = api_client.resolve_org_api_base(creds["organization_slug"])
-
-    auth_response = api_client.post(
-        f"{org_api_base}/pms/users/landing-authenticate",
-        json={
-            "language": "en",
-            "organization": creds["organization_slug"],
-            "email": creds["email"],
-            "password": creds["password"],
-            "mfaCode": "",
-        },
-    )
-    auth_response.raise_for_status()
-    access_token = auth_response.json()["accessToken"]
-
-    verify_response = api_client.get(f"{org_api_base}/pms/users/landing-verify/{access_token}")
-    verify_response.raise_for_status()
-    session_token = verify_response.json()["token"]
-
-    api_client.headers["Authorization"] = f"Bearer {session_token}"
-
-    return {"org_api_base": org_api_base}
+    api_client.headers["Authorization"] = f"Bearer {liberty_session_token['session_token']}"
+    return {"org_api_base": liberty_session_token["org_api_base"]}
 
 
 @pytest.fixture
@@ -54,3 +28,28 @@ def default_property_id(api_client, authenticated_session):
     response = api_client.get(f"{authenticated_session['org_api_base']}/pms/associations")
     response.raise_for_status()
     return response.json()["properties"][0]["id"]
+
+
+@pytest.fixture
+def default_unit_id(api_client, authenticated_session, default_property_id):
+    """The first unit under the default property, used to fill required
+    unit fields the same way the UI's "Select Unit" dropdown does.
+    """
+    response = api_client.get(
+        f"{authenticated_session['org_api_base']}/pms/associations/{default_property_id}/units"
+    )
+    response.raise_for_status()
+    return response.json()["units"][0]["id"]
+
+
+@pytest.fixture
+def default_assigned_user_id(api_client, authenticated_session, default_property_id):
+    """The first employee eligible to be assigned to a rental application,
+    the same list the UI's "Select Assigned To" dropdown is populated from.
+    """
+    response = api_client.post(
+        f"{authenticated_session['org_api_base']}/pms/users/search-by-role-names",
+        json={"roles": ["employee"], "filters": {"keyword": ""}, "propertyId": default_property_id},
+    )
+    response.raise_for_status()
+    return response.json()[0]["id"]

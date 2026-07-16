@@ -6,6 +6,7 @@ from playwright.sync_api import expect
 LIBERTY_OVERVIEW_URL = "https://liberty.roamstay.com/overview"
 LIBERTY_OVERVIEW_URL_PATTERN = re.compile(r"^https://liberty\.roamstay\.com/overview")
 LIBERTY_ACTIVE_LEASES_URL_PATTERN = re.compile(r"^https://liberty\.roamstay\.com/leasing/active")
+LIBERTY_RENTAL_APPLICATIONS_URL_PATTERN = re.compile(r"^https://liberty\.roamstay\.com/leasing/rental")
 
 
 @pytest.fixture
@@ -85,3 +86,106 @@ def signed_in_active_leases_page(leasing_active_page):
     leasing_active_page.open()
     expect(leasing_active_page.page).to_have_url(LIBERTY_ACTIVE_LEASES_URL_PATTERN)
     return leasing_active_page
+
+
+@pytest.fixture
+def rental_application_page(authenticated_page):
+    from pages.rental_application_page import RentalApplicationPage
+
+    return RentalApplicationPage(authenticated_page)
+
+
+@pytest.fixture
+def add_rental_application_page(authenticated_page):
+    from pages.add_rental_application_page import AddRentalApplicationPage
+
+    return AddRentalApplicationPage(authenticated_page)
+
+
+@pytest.fixture
+def rental_application_detail_page(authenticated_page):
+    from pages.rental_application_detail_page import RentalApplicationDetailPage
+
+    return RentalApplicationDetailPage(authenticated_page)
+
+
+@pytest.fixture
+def signed_in_rental_applications_page(rental_application_page):
+    """Prerequisite for leasing module tests: an already-authenticated page
+    (see liberty_storage_state), navigated to Rental Applications."""
+    rental_application_page.page.goto(LIBERTY_OVERVIEW_URL)
+    rental_application_page.open()
+    expect(rental_application_page.page).to_have_url(LIBERTY_RENTAL_APPLICATIONS_URL_PATTERN)
+    return rental_application_page
+
+
+@pytest.fixture
+def seeded_rental_application(liberty_session_token):
+    """Creates a real prospect + rental application via direct API calls
+    (see tests/api/test_leasing_rental_application_api.py for the same
+    pattern), so list/detail-rendering tests can assert against known
+    values without driving the multi-dialog creation UI, which is flaky:
+    the "Select Prospect" list doesn't refresh after adding a new prospect,
+    and Escape closes the whole "Add Rental Application" dialog rather than
+    just the date picker.
+    """
+    import time
+
+    from clients.api_client import ApiClient
+
+    org_api_base = liberty_session_token["org_api_base"]
+
+    with ApiClient() as client:
+        client.headers["Authorization"] = f"Bearer {liberty_session_token['session_token']}"
+
+        property_id = client.get(f"{org_api_base}/pms/associations").json()["properties"][0]["id"]
+        unit = client.get(f"{org_api_base}/pms/associations/{property_id}/units").json()["units"][0]
+        assigned_user = client.post(
+            f"{org_api_base}/pms/users/search-by-role-names",
+            json={"roles": ["employee"], "filters": {"keyword": ""}, "propertyId": property_id},
+        ).json()[0]
+
+        unique_suffix = int(time.time() * 1000)
+        email = f"qa.e2e.rental+{unique_suffix}@example.com"
+        prospect = client.post(
+            f"{org_api_base}/pms/prospects",
+            json={
+                "name": "QA E2E",
+                "nameLast": f"Applicant {unique_suffix}",
+                "nameCompany": "",
+                "employerTitle": "",
+                "notes": "",
+                "email": email,
+                "contactPhone": "",
+                "password": "Roam@2025",
+            },
+        ).json()
+
+        application = client.post(
+            f"{org_api_base}/pms/applications",
+            json={
+                "userId": prospect["id"],
+                "propertyId": property_id,
+                "unitId": unit["id"],
+                "moveInDate": "2026-12-01",
+                "assignedUserId": assigned_user["id"],
+                "hasFee": False,
+                "fee": 0,
+                "firstName": prospect["name"],
+                "lastName": prospect["nameLast"],
+                "email": email,
+                "tenants": [{"id": prospect["id"], "tenantOrder": 1}],
+            },
+        ).json()
+
+        # Re-fetch rather than trusting the values just submitted: the create
+        # endpoint doesn't always honor unitId as sent (observed swapping to
+        # a different unit under the same property), so the detail GET is
+        # the only authoritative source for what was actually persisted.
+        detail = client.get(f"{org_api_base}/pms/applications/{application['id']}").json()
+
+    return {
+        "application": application,
+        "unit_name": detail["unit"]["name"],
+        "assigned_user_name": detail["assignedUser"]["name"],
+    }
