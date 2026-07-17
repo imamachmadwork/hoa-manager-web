@@ -126,10 +126,21 @@ failure), the bug reports (on failure), and the **Allure HTML report**
 (always — this is the report document, generated whether the run passed or
 failed).
 
-To view a downloaded `allure-report` artifact: unzip it and serve the
-folder (its `index.html` won't work opened directly via `file://` — the
-report fetches its data over HTTP). E.g. `python3 -m http.server 4567
---directory allure-report` then open `http://localhost:4567`.
+Tests for tracked, pre-existing product bugs are marked
+`@pytest.mark.known_bug` (see `pyproject.toml`) and run in a separate
+**`known-bugs`** job, after the main `test` job. These tests assert the
+*correct* expected behavior, so they fail until each bug is fixed upstream —
+they're excluded from the main `test` run (`pytest -m "not known_bug"`) so a
+tracked issue doesn't fail the PR check on every run, and run on their own
+(`pytest -m known_bug`, `continue-on-error: true`) with their own Allure
+report and bug-report artifacts (`known-bugs-allure-report`,
+`known-bugs-report`) so they stay visible without blocking anything.
+
+To view a downloaded `allure-report` (or `known-bugs-allure-report`)
+artifact: unzip it and serve the folder (its `index.html` won't work opened
+directly via `file://` — the report fetches its data over HTTP). E.g.
+`python3 -m http.server 4567 --directory allure-report` then open
+`http://localhost:4567`.
 
 To point CI at different targets than the defaults, set repository/environment
 variables (Settings → Secrets and variables → Actions → Variables):
