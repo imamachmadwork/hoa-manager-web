@@ -188,6 +188,26 @@ def test_homeowners_search_returns_expected_shape(api_client, authenticated_sess
 
 
 @pytest.mark.smoke
+def test_homeowner_detail_matches_search_result(api_client, authenticated_session, default_property_id):
+    """Homeowners and Tenants share the same /pms/users/search endpoint
+    (see _search_users), but the detail page navigates to /pms/users/{id} -
+    the same detail endpoint the UI's HomeownerDetailPage hits on row click
+    (see pages/homeowner_detail_page.py)."""
+    search_response = _search_users(api_client, authenticated_session["org_api_base"], default_property_id, role="owner")
+    search_response.raise_for_status()
+    data = search_response.json()["data"]
+    assert data, "expected at least one homeowner under the default property"
+    first_owner = data[0]
+
+    detail_response = api_client.get(f"{authenticated_session['org_api_base']}/pms/users/{first_owner['id']}")
+
+    assert detail_response.status_code == 200
+    body = detail_response.json()
+    assert body["id"] == first_owner["id"]
+    assert body["name"] == first_owner["name"]
+
+
+@pytest.mark.smoke
 def test_tenants_search_returns_expected_shape(api_client, authenticated_session, default_property_id):
     # The live Liberty org has 0 tenants under its default property - assert
     # the shape rather than a non-empty result, matching the E2E empty-state

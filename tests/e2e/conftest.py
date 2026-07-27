@@ -279,3 +279,28 @@ def customer_account_detail_page(authenticated_page):
     from pages.customer_account_detail_page import CustomerAccountDetailPage
 
     return CustomerAccountDetailPage(authenticated_page)
+
+
+@pytest.fixture
+def signed_in_homeowners_page(authenticated_page):
+    """Prerequisite for Homeowners-specific tests (filters, row navigation)
+    that don't need to run across all seven Contacts sections."""
+    from pages.contacts_list_page import ContactsListPage
+
+    config = CONTACTS_SECTIONS["owners"]
+    contacts_list_page = ContactsListPage(
+        authenticated_page,
+        menu_item_name=config["menu_item_name"],
+        heading_text=config["heading_text"],
+    )
+    contacts_list_page.page.goto(LIBERTY_OVERVIEW_URL)
+    contacts_list_page.open()
+    expect(contacts_list_page.page).to_have_url(config["url_pattern"])
+    return contacts_list_page
+
+
+@pytest.fixture
+def homeowner_detail_page(authenticated_page):
+    from pages.homeowner_detail_page import HomeownerDetailPage
+
+    return HomeownerDetailPage(authenticated_page)
