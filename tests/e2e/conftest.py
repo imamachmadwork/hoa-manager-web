@@ -8,6 +8,48 @@ LIBERTY_OVERVIEW_URL_PATTERN = re.compile(r"^https://liberty\.roamstay\.com/over
 LIBERTY_ACTIVE_LEASES_URL_PATTERN = re.compile(r"^https://liberty\.roamstay\.com/leasing/active")
 LIBERTY_RENTAL_APPLICATIONS_URL_PATTERN = re.compile(r"^https://liberty\.roamstay\.com/leasing/rental")
 
+# Config for the Contacts module's seven list sections, keyed by the
+# sidebar's route slug. Discovered by scanning the live site's Contacts
+# sidebar menu and each section's rendered <h1>; see ContactsListPage for
+# what's shared across all seven.
+CONTACTS_SECTIONS = {
+    "customers": {
+        "menu_item_name": "Customer Accounts",
+        "heading_text": "All Customer Accounts",
+        "url_pattern": re.compile(r"^https://liberty\.roamstay\.com/contacts/customers"),
+    },
+    "owners": {
+        "menu_item_name": "Homeowners",
+        "heading_text": "All Homeowners",
+        "url_pattern": re.compile(r"^https://liberty\.roamstay\.com/contacts/owners"),
+    },
+    "tenants": {
+        "menu_item_name": "Tenants",
+        "heading_text": "All Tenants",
+        "url_pattern": re.compile(r"^https://liberty\.roamstay\.com/contacts/tenants"),
+    },
+    "vendors": {
+        "menu_item_name": "Vendors",
+        "heading_text": "All Vendors",
+        "url_pattern": re.compile(r"^https://liberty\.roamstay\.com/contacts/vendors"),
+    },
+    "developers": {
+        "menu_item_name": "Developers",
+        "heading_text": "All Developers",
+        "url_pattern": re.compile(r"^https://liberty\.roamstay\.com/contacts/developers"),
+    },
+    "employees": {
+        "menu_item_name": "Employees",
+        "heading_text": "All Employees",
+        "url_pattern": re.compile(r"^https://liberty\.roamstay\.com/contacts/employees"),
+    },
+    "prospects": {
+        "menu_item_name": "Prospects",
+        "heading_text": "All Prospects",
+        "url_pattern": re.compile(r"^https://liberty\.roamstay\.com/contacts/prospects"),
+    },
+}
+
 
 @pytest.fixture
 def home_page(page):
@@ -189,3 +231,51 @@ def seeded_rental_application(liberty_session_token):
         "unit_name": detail["unit"]["name"],
         "assigned_user_name": detail["assignedUser"]["name"],
     }
+
+
+@pytest.fixture(params=list(CONTACTS_SECTIONS.keys()))
+def contacts_section(request):
+    """Parametrizes any test that uses it to run once per Contacts sidebar
+    section (see CONTACTS_SECTIONS), so a single test scans the whole module."""
+    return request.param
+
+
+@pytest.fixture
+def signed_in_contacts_page(authenticated_page, contacts_section):
+    from pages.contacts_list_page import ContactsListPage
+
+    config = CONTACTS_SECTIONS[contacts_section]
+    contacts_list_page = ContactsListPage(
+        authenticated_page,
+        menu_item_name=config["menu_item_name"],
+        heading_text=config["heading_text"],
+    )
+    contacts_list_page.page.goto(LIBERTY_OVERVIEW_URL)
+    contacts_list_page.open()
+    expect(contacts_list_page.page).to_have_url(config["url_pattern"])
+    return contacts_list_page
+
+
+@pytest.fixture
+def signed_in_customer_accounts_page(authenticated_page):
+    """Prerequisite for Customer Accounts-specific tests (filters, row
+    navigation) that don't need to run across all seven Contacts sections."""
+    from pages.contacts_list_page import ContactsListPage
+
+    config = CONTACTS_SECTIONS["customers"]
+    contacts_list_page = ContactsListPage(
+        authenticated_page,
+        menu_item_name=config["menu_item_name"],
+        heading_text=config["heading_text"],
+    )
+    contacts_list_page.page.goto(LIBERTY_OVERVIEW_URL)
+    contacts_list_page.open()
+    expect(contacts_list_page.page).to_have_url(config["url_pattern"])
+    return contacts_list_page
+
+
+@pytest.fixture
+def customer_account_detail_page(authenticated_page):
+    from pages.customer_account_detail_page import CustomerAccountDetailPage
+
+    return CustomerAccountDetailPage(authenticated_page)
