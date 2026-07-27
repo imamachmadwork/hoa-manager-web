@@ -283,6 +283,40 @@ def test_developers_search_returns_expected_shape(api_client, authenticated_sess
     assert PAGE_META_KEYS.issubset(body["meta"].keys())
 
 
+def test_developers_search_rejects_unauthenticated_request(api_client, credentials):
+    creds = credentials("liberty")
+    org_api_base = api_client.resolve_org_api_base(creds["organization_slug"])
+
+    response = api_client.post(
+        f"{org_api_base}{GROUPS_SEARCH_PATH}",
+        json={"limit": 10, "order": "asc", "page": 1, "role": "developer", "sort": "name", "filters": {}},
+    )
+
+    assert response.status_code == 401
+
+
+@pytest.mark.smoke
+def test_developer_detail_matches_search_result(api_client, authenticated_session):
+    """Developer Details navigates to GET /pms/groups/{id} - unlike every
+    other Contacts detail endpoint above, the response wraps the record in a
+    single-element `group` array (`{"group": [{...}]}`) instead of returning
+    it directly, confirmed via a direct API probe of the live Liberty org
+    (see pages/developer_detail_page.py)."""
+    search_response = _search_developers(api_client, authenticated_session["org_api_base"])
+    search_response.raise_for_status()
+    data = search_response.json()["data"]
+    assert data, "expected at least one developer in this org"
+    first_developer = data[0]
+
+    detail_response = api_client.get(f"{authenticated_session['org_api_base']}/pms/groups/{first_developer['id']}")
+
+    assert detail_response.status_code == 200
+    body = detail_response.json()
+    detail = body["group"][0]
+    assert detail["id"] == first_developer["id"]
+    assert detail["name"] == first_developer["name"]
+
+
 @pytest.mark.smoke
 def test_employees_search_returns_expected_shape(api_client, authenticated_session, default_property_id):
     response = _search_employees(api_client, authenticated_session["org_api_base"], default_property_id)

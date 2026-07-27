@@ -329,3 +329,28 @@ def vendor_detail_page(authenticated_page):
     from pages.vendor_detail_page import VendorDetailPage
 
     return VendorDetailPage(authenticated_page)
+
+
+@pytest.fixture
+def signed_in_developers_page(authenticated_page):
+    """Prerequisite for Developers-specific tests (filters, row navigation)
+    that don't need to run across all seven Contacts sections."""
+    from pages.contacts_list_page import ContactsListPage
+
+    config = CONTACTS_SECTIONS["developers"]
+    contacts_list_page = ContactsListPage(
+        authenticated_page,
+        menu_item_name=config["menu_item_name"],
+        heading_text=config["heading_text"],
+    )
+    contacts_list_page.page.goto(LIBERTY_OVERVIEW_URL)
+    contacts_list_page.open()
+    expect(contacts_list_page.page).to_have_url(config["url_pattern"])
+    return contacts_list_page
+
+
+@pytest.fixture
+def developer_detail_page(authenticated_page):
+    from pages.developer_detail_page import DeveloperDetailPage
+
+    return DeveloperDetailPage(authenticated_page)
