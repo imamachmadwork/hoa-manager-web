@@ -1,6 +1,6 @@
 # Contacts Api — Backend bugs
 
-- Generated: 2026-07-27 17:22 UTC
+- Generated: 2026-07-27 18:34 UTC
 - Environment: https://roamstay.com
 - Failing tests: 1
 
@@ -18,8 +18,8 @@ AssertionError: assert 200 == 401
 <details><summary>Trace</summary>
 
 ```
-api_client = <clients.api_client.ApiClient object at 0x107801250>
-credentials = <function get_credentials at 0x1076e94e0>
+api_client = <clients.api_client.ApiClient object at 0x109d20d90>
+credentials = <function get_credentials at 0x109cfb060>
 
     @pytest.mark.known_bug
     def test_prospects_search_rejects_unauthenticated_request(api_client, credentials):
@@ -41,7 +41,7 @@ credentials = <function get_credentials at 0x1076e94e0>
 E       assert 200 == 401
 E        +  where 200 = <Response [200 OK]>.status_code
 
-tests/api/test_contacts_api.py:356: AssertionError
+tests/api/test_contacts_api.py:390: AssertionError
 ```
 
 </details>

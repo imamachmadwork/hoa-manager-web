@@ -354,3 +354,28 @@ def developer_detail_page(authenticated_page):
     from pages.developer_detail_page import DeveloperDetailPage
 
     return DeveloperDetailPage(authenticated_page)
+
+
+@pytest.fixture
+def signed_in_employees_page(authenticated_page):
+    """Prerequisite for Employees-specific tests (filters, row navigation)
+    that don't need to run across all seven Contacts sections."""
+    from pages.contacts_list_page import ContactsListPage
+
+    config = CONTACTS_SECTIONS["employees"]
+    contacts_list_page = ContactsListPage(
+        authenticated_page,
+        menu_item_name=config["menu_item_name"],
+        heading_text=config["heading_text"],
+    )
+    contacts_list_page.page.goto(LIBERTY_OVERVIEW_URL)
+    contacts_list_page.open()
+    expect(contacts_list_page.page).to_have_url(config["url_pattern"])
+    return contacts_list_page
+
+
+@pytest.fixture
+def employee_detail_page(authenticated_page):
+    from pages.employee_detail_page import EmployeeDetailPage
+
+    return EmployeeDetailPage(authenticated_page)

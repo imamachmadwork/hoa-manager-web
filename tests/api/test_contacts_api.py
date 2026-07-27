@@ -327,6 +327,40 @@ def test_employees_search_returns_expected_shape(api_client, authenticated_sessi
     assert PAGE_META_KEYS.issubset(body["meta"].keys())
 
 
+def test_employees_search_rejects_unauthenticated_request(api_client, credentials):
+    """Unlike /pms/prospects/search (see test_prospects_search_rejects_unauthenticated_request
+    below), /pms/employees/search correctly 401s with no Authorization header -
+    confirmed via a direct API probe of the live Liberty org."""
+    creds = credentials("liberty")
+    org_api_base = api_client.resolve_org_api_base(creds["organization_slug"])
+
+    response = _search_employees(api_client, org_api_base, property_id="irrelevant")
+
+    assert response.status_code == 401
+
+
+@pytest.mark.smoke
+def test_employee_detail_matches_search_result(api_client, authenticated_session, default_property_id):
+    """Employee Details navigates to GET /pms/users/{id} - the same detail
+    endpoint HomeownerDetailPage's row-click hits (see
+    test_homeowner_detail_matches_search_result above) - even though the
+    search endpoint (/pms/employees/search) is distinct from Homeowners' own
+    (/pms/users/search). Confirmed via a direct API probe of the live
+    Liberty org (see pages/employee_detail_page.py)."""
+    search_response = _search_employees(api_client, authenticated_session["org_api_base"], default_property_id)
+    search_response.raise_for_status()
+    data = search_response.json()["data"]
+    assert data, "expected at least one employee under the default property"
+    first_employee = data[0]
+
+    detail_response = api_client.get(f"{authenticated_session['org_api_base']}/pms/users/{first_employee['id']}")
+
+    assert detail_response.status_code == 200
+    body = detail_response.json()
+    assert body["id"] == first_employee["id"]
+    assert body["name"] == first_employee["name"]
+
+
 @pytest.mark.smoke
 def test_prospects_search_returns_expected_shape(api_client, authenticated_session, default_property_id):
     response = _search_prospects(api_client, authenticated_session["org_api_base"], default_property_id)
