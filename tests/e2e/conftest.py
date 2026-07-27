@@ -304,3 +304,28 @@ def homeowner_detail_page(authenticated_page):
     from pages.homeowner_detail_page import HomeownerDetailPage
 
     return HomeownerDetailPage(authenticated_page)
+
+
+@pytest.fixture
+def signed_in_vendors_page(authenticated_page):
+    """Prerequisite for Vendors-specific tests (filters, row navigation)
+    that don't need to run across all seven Contacts sections."""
+    from pages.contacts_list_page import ContactsListPage
+
+    config = CONTACTS_SECTIONS["vendors"]
+    contacts_list_page = ContactsListPage(
+        authenticated_page,
+        menu_item_name=config["menu_item_name"],
+        heading_text=config["heading_text"],
+    )
+    contacts_list_page.page.goto(LIBERTY_OVERVIEW_URL)
+    contacts_list_page.open()
+    expect(contacts_list_page.page).to_have_url(config["url_pattern"])
+    return contacts_list_page
+
+
+@pytest.fixture
+def vendor_detail_page(authenticated_page):
+    from pages.vendor_detail_page import VendorDetailPage
+
+    return VendorDetailPage(authenticated_page)

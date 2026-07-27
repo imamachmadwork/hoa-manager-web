@@ -249,6 +249,31 @@ def test_vendors_search_rejects_unauthenticated_request(api_client, credentials)
 
 
 @pytest.mark.smoke
+def test_vendor_detail_matches_search_result(api_client, authenticated_session, default_property_id):
+    """Vendor Details navigates to GET /pms/vendors/{groupId}/{propertyId} -
+    unlike Customer Accounts/Homeowners, this response is scoped per
+    vendor-property association, so its own `id` is that association's id,
+    not the vendor's. The search result's `id` (the vendor/group id)
+    reappears as the detail response's `groupId` instead - confirmed via
+    live network capture of the UI's row-click navigation (see
+    pages/vendor_detail_page.py)."""
+    search_response = _search_vendors(api_client, authenticated_session["org_api_base"], default_property_id)
+    search_response.raise_for_status()
+    data = search_response.json()["data"]
+    assert data, "expected at least one vendor under the default property"
+    first_vendor = data[0]
+
+    detail_response = api_client.get(
+        f"{authenticated_session['org_api_base']}/pms/vendors/{first_vendor['id']}/{default_property_id}"
+    )
+
+    assert detail_response.status_code == 200
+    body = detail_response.json()
+    assert body["groupId"] == first_vendor["id"]
+    assert body["name"] == first_vendor["name"]
+
+
+@pytest.mark.smoke
 def test_developers_search_returns_expected_shape(api_client, authenticated_session):
     response = _search_developers(api_client, authenticated_session["org_api_base"])
 
