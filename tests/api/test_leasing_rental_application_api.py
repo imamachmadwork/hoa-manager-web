@@ -1,5 +1,6 @@
 import time
 
+import allure
 import pytest
 
 # Discovered from the Rental Applications page's network traffic: the
@@ -117,22 +118,6 @@ def created_application(
 
 
 @pytest.mark.smoke
-def test_created_application_appears_in_search(
-    api_client, authenticated_session, default_property_id, created_application
-):
-    # This org has accumulated many applications from repeated test runs, so
-    # a small page size (matching the UI's default of 10) isn't guaranteed
-    # to include a freshly created record - widen it for this assertion.
-    response = _search_applications(
-        api_client, authenticated_session["org_api_base"], default_property_id, [], limit=100
-    )
-
-    assert response.status_code == 200
-    ids = [row["id"] for row in response.json()["data"]]
-    assert created_application["id"] in ids
-
-
-@pytest.mark.smoke
 def test_created_application_detail_matches_submitted_values(
     api_client, authenticated_session, created_application, default_unit_id, default_assigned_user_id
 ):
@@ -147,3 +132,30 @@ def test_created_application_detail_matches_submitted_values(
     assert body["assignedUserId"] == default_assigned_user_id
     assert body["statusName"] == "Pending"
     assert body["moveInDate"].startswith("2026-12-01")
+
+
+# --- Known bugs -------------------------------------------------------------
+# See tests/e2e/test_leasing_rental_application.py for the section-level
+# explanation of why these assert correct behavior and are marked known_bug.
+
+
+@pytest.mark.known_bug
+@allure.tag("known-bug")
+def test_created_application_appears_in_search(
+    api_client, authenticated_session, default_property_id, created_application
+):
+    """Known bug (issue #8): a just-created application isn't returned by the
+    search endpoint. Reproduced across 4 separate runs (3 local, 1 CI) - see
+    reports/bug-reports/backend/leasing-rental-application-api.md. Looks like
+    a read-lag/indexing gap between POST /pms/applications (write) and
+    POST /pms/applications/search (read), not a pagination issue: this widens
+    the page size to 100, well above this org's accumulated application count
+    at the time each run failed.
+    """
+    response = _search_applications(
+        api_client, authenticated_session["org_api_base"], default_property_id, [], limit=100
+    )
+
+    assert response.status_code == 200
+    ids = [row["id"] for row in response.json()["data"]]
+    assert created_application["id"] in ids

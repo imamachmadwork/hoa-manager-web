@@ -36,28 +36,6 @@ def test_add_rental_application_modal_renders(signed_in_rental_applications_page
 
 
 @pytest.mark.smoke
-def test_created_application_appears_correctly_in_list(signed_in_rental_applications_page, seeded_rental_application):
-    rental_page = signed_in_rental_applications_page
-    application = seeded_rental_application["application"]
-
-    rental_page.all_applications_tab.click()
-
-    # The list defaults to 10 rows/page and this org has accumulated more
-    # than that from prior test runs, so a freshly created row can land on
-    # page 2+ regardless of sort order. Widen the page size so the new row
-    # is guaranteed to be on the (only) page, rather than depending on sort.
-    rental_page.page.get_by_role("combobox", name="Items per page:").click()
-    rental_page.page.get_by_role("option", name="100", exact=True).click()
-
-    row = rental_page.table.locator("tr", has_text=application["lastName"])
-    expect(row).to_be_visible(timeout=10000)
-    expect(row).to_contain_text("12/01/2026")
-    expect(row).to_contain_text(application["email"])
-    # Unit name deliberately not asserted here - see the known-bug test
-    # below (test_list_and_detail_agree_on_unit_for_same_application).
-
-
-@pytest.mark.smoke
 def test_created_application_detail_page_shows_correct_values(
     authenticated_page, rental_application_detail_page, seeded_rental_application
 ):
@@ -136,3 +114,34 @@ def test_list_and_detail_agree_on_unit_for_same_application(
     row = rental_page.table.locator("tr", has_text=application["lastName"])
     expect(row).to_be_visible(timeout=10000)
     expect(row).to_contain_text(unit_name)
+
+
+@pytest.mark.known_bug
+@allure.tag("known-bug")
+def test_created_application_appears_correctly_in_list(signed_in_rental_applications_page, seeded_rental_application):
+    """Known bug (issue #8): a just-created application isn't visible in the
+    list right after creation, even with page size widened to 100. Reproduced
+    across 4 separate runs (3 local, 1 CI) - see
+    reports/bug-reports/frontend/leasing-rental-application.md. Same root
+    cause as test_created_application_appears_in_search in the API suite:
+    looks like a read-lag/indexing gap on the backend, not a UI or pagination
+    issue.
+    """
+    rental_page = signed_in_rental_applications_page
+    application = seeded_rental_application["application"]
+
+    rental_page.all_applications_tab.click()
+
+    # The list defaults to 10 rows/page and this org has accumulated more
+    # than that from prior test runs, so a freshly created row can land on
+    # page 2+ regardless of sort order. Widen the page size so the new row
+    # is guaranteed to be on the (only) page, rather than depending on sort.
+    rental_page.page.get_by_role("combobox", name="Items per page:").click()
+    rental_page.page.get_by_role("option", name="100", exact=True).click()
+
+    row = rental_page.table.locator("tr", has_text=application["lastName"])
+    expect(row).to_be_visible(timeout=10000)
+    expect(row).to_contain_text("12/01/2026")
+    expect(row).to_contain_text(application["email"])
+    # Unit name deliberately not asserted here - see
+    # test_list_and_detail_agree_on_unit_for_same_application above.
